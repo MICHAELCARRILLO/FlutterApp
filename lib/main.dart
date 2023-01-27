@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tanny_app/Screens/Page01.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'generated/l10n.dart';
 
 void main() {
   runApp(const MyApp());

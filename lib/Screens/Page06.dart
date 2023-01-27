@@ -21,11 +21,12 @@ class _Page06State extends State<Page06> {
 
   void _showDatePicker() {
     showDatePicker(
-            context: context,
-            initialDate: DateTime.now(),
-            firstDate: DateTime(2022),
-            lastDate: DateTime(2025))
-        .then((value) => {setState(() => _currentDate = value!)});
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2022),
+      lastDate: DateTime(2025),
+      locale: Locale('es', 'ES'),
+    ).then((value) => {setState(() => _currentDate = value!)});
   }
 
   @override
