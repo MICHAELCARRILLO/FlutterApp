@@ -1,7 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:pdf/pdf.dart';
 import 'package:tanny_app/Screens/Page02.dart';
 import '../Custom_Widgets/custom_widgets.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 class Page01 extends StatelessWidget {
   const Page01({super.key});

@@ -1,6 +1,17 @@
+import 'dart:io';
+import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:pdf/pdf.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:tanny_app/Custom_Widgets/custom_widgets.dart';
+
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/widgets.dart' as pw;
+
+import '../Custom_Widgets/pdf_api.dart';
 
 class Page05 extends StatefulWidget {
   const Page05({super.key});
@@ -13,6 +24,23 @@ class _Page05State extends State<Page05> {
   int? _turn = 1;
   int? _machine = 1;
   int? _operator = 1;
+
+  List<File?> images = [];
+
+  Future pickImage() async {
+    try {
+      final image = await ImagePicker().pickImage(source: ImageSource.camera);
+
+      if (image == null) return;
+
+      final imageTemporary = File(image.path);
+      setState(() {
+        images.add(imageTemporary);
+      });
+    } on PlatformException catch (e) {
+      print('Failed to pick image: $e');
+    }
+  }
 
   void _handleTurn(int? value) {
     setState(() {
@@ -35,20 +63,11 @@ class _Page05State extends State<Page05> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-
     return Scaffold(
       backgroundColor: Color.fromARGB(255, 247, 247, 247),
+      appBar: customAppbar(context, "Información de daño Material/Operacional"),
       body: ListView(
         children: [
-          SizedBox(height: 60.h),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 49.w),
-            child: Text(
-              "Información de daño Material/Operacional",
-              style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.w700),
-              textAlign: TextAlign.center,
-            ),
-          ),
           SizedBox(height: 28.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -79,7 +98,7 @@ class _Page05State extends State<Page05> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               userInputInRow("Código del equipo", 25.w, 220.w, 45.h, 12.r,
-                  IconData(0x00000000), 1.w),
+                  Icons.pending_actions, 1.w),
               SizedBox(width: 15.w),
               InkWell(
                 onTap: () => {},
@@ -172,28 +191,93 @@ class _Page05State extends State<Page05> {
             ),
           ),
           SizedBox(height: 25.h),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.camera_alt,
-                size: 50.sp,
-                color: Color.fromRGBO(146, 146, 146, 1.0),
-              ),
-              SizedBox(
-                width: 15.w,
-              ),
-              Text(
-                "Tomar fotos.",
-                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w400),
-              ),
-            ],
+
+          //images here
+          Container(
+            height: 350,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: images.length,
+              padding: EdgeInsets.symmetric(horizontal: 10.0),
+              itemBuilder: (context, index) {
+                return Container(
+                  padding: EdgeInsets.only(right: 10.0),
+                  child: Image.file(images[index]!),
+                );
+              },
+            ),
+          ),
+          SizedBox(
+            height: 25.h,
+          ),
+
+          InkWell(
+            onTap: () async {
+              PermissionStatus cameraStatus = await Permission.camera.request();
+
+              if (cameraStatus == PermissionStatus.granted) {
+                pickImage();
+              }
+              if (cameraStatus == PermissionStatus.denied) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                  content: Text(
+                      "Necesita autorizar los permisos para usar la camara."),
+                ));
+              }
+              if (cameraStatus == PermissionStatus.permanentlyDenied) {
+                openAppSettings();
+              }
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.camera_alt,
+                  size: 50.sp,
+                  color: Color.fromRGBO(146, 146, 146, 1.0),
+                ),
+                SizedBox(
+                  width: 15.w,
+                ),
+                Text(
+                  "Tomar fotos.",
+                  style:
+                      TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w400),
+                ),
+              ],
+            ),
           ),
           SizedBox(height: 30.h),
-          button("Guardar Pdf", 25.w, screenWidth, () {}),
-          SizedBox(height: 40.h),
+          button("Guardar Pdf", 25.w, screenWidth, () async {
+            final pdfFile = await PdfApi.generateCenteredText(images);
+            showPrintedMessage("Succeed", "Saved at ${pdfFile.path}");
+            print(pdfFile.path);
+
+            // PdfApi.openFile(pdfFile);
+          }),
+          SizedBox(height: 35.h),
         ],
       ),
     );
+  }
+
+  Widget buildImage(File? image, int index) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 6.w),
+      color: Colors.grey,
+      child: Image.file(
+        image!,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
+  showPrintedMessage(String title, String message) {
+    Flushbar(
+        title: title,
+        message: message,
+        duration: Duration(seconds: 10),
+        icon: Icon(Icons.info, color: Colors.blue))
+      ..show(context);
   }
 }

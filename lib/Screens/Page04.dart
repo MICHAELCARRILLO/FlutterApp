@@ -29,7 +29,17 @@ class Page04 extends StatelessWidget {
           Container(
             color: const Color.fromRGBO(47, 72, 167, 1),
             child: Column(children: [
-              customImageBar(138.h),
+              Stack(
+                children: [
+                  customImageBar(138.h),
+                  Positioned(
+                    child: customBackButton(
+                        context, 25.sp, Color.fromARGB(255, 255, 255, 255)),
+                    top: 48.h,
+                    left: 18.w,
+                  )
+                ],
+              ),
               Image(
                 image: AssetImage("images/image04.png"),
                 height: 130.h,
