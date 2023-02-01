@@ -251,7 +251,7 @@ class _Page05State extends State<Page05> {
           button("Guardar Pdf", 25.w, screenWidth, () async {
             final pdfFile = await PdfApi.generateCenteredText(images);
             showPrintedMessage("Succeed", "Saved at ${pdfFile.path}");
-            print(pdfFile.path);
+            PdfApi.openFile(pdfFile);
 
             // PdfApi.openFile(pdfFile);
           }),
