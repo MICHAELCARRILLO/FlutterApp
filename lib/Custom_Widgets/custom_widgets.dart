@@ -203,5 +203,3 @@ AppBar customAppbar(BuildContext context, String text) {
     ),
   );
 }
-
- 

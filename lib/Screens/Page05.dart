@@ -249,11 +249,9 @@ class _Page05State extends State<Page05> {
           ),
           SizedBox(height: 30.h),
           button("Guardar Pdf", 25.w, screenWidth, () async {
-            final pdfFile = await PdfApi.generateCenteredText(images);
+            final pdfFile = await PdfApi.createPdf(images);
             showPrintedMessage("Succeed", "Saved at ${pdfFile.path}");
             PdfApi.openFile(pdfFile);
-
-            // PdfApi.openFile(pdfFile);
           }),
           SizedBox(height: 35.h),
         ],
