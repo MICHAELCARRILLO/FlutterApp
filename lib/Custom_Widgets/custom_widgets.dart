@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:math';
 
+import 'package:tanny_app/Models/AdminReport.dart';
+
 Widget button(
   String text,
   double horizontalPadding,
@@ -30,7 +32,8 @@ Widget button(
   );
 }
 
-Widget userInput(String textHint, bool password) {
+Widget userInput(
+    String textHint, bool password, TextEditingController controller) {
   return Padding(
     padding: EdgeInsets.symmetric(horizontal: 25.w),
     child: Container(
@@ -44,6 +47,7 @@ Widget userInput(String textHint, bool password) {
           decoration:
               InputDecoration(border: InputBorder.none, hintText: textHint),
           obscureText: password,
+          controller: controller,
         ),
       ),
     ),
@@ -55,8 +59,14 @@ Image customImageBar(double customSize) {
       height: customSize, width: double.infinity, alignment: Alignment.topLeft);
 }
 
-Padding userInputInRow(String textHint, double horizontalPadding, double width,
-    double height, double radius, IconData icon, borderWidth) {
+Padding userInputInRow(
+    String textHint,
+    double horizontalPadding,
+    double width,
+    double height,
+    double radius,
+    borderWidth,
+    TextEditingController controller) {
   return Padding(
     padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
     child: Container(
@@ -76,8 +86,8 @@ Padding userInputInRow(String textHint, double horizontalPadding, double width,
               hintStyle: const TextStyle(
                   color: Color.fromARGB(255, 135, 135, 135),
                   fontWeight: FontWeight.bold),
-              suffixIcon: Icon(icon),
               border: InputBorder.none),
+          controller: controller,
         ),
       ),
     ),
@@ -156,13 +166,15 @@ Padding customListItem(String machine, String date, String name) {
   );
 }
 
-ListView customList(var jsonData, BuildContext context, int itemsToShow) {
+ListView customList(
+    List<AdminReport> adminReports, BuildContext context, int itemsToShow) {
   return ListView.builder(
     shrinkWrap: true,
-    itemCount: min(jsonData.length, itemsToShow),
+    itemCount: min(adminReports.length, itemsToShow),
     itemBuilder: (context, int index) {
-      var item = jsonData[index];
-      return customListItem(item['Equipo']!, item['Fecha']!, item['Nombre']!);
+      AdminReport item = adminReports[index];
+      return customListItem(item.machine.code, item.date,
+          item.operator.name + " " + item.operator.lastname.split(' ')[0]);
     },
   );
 }

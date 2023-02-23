@@ -5,6 +5,8 @@ import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart';
+import 'package:tanny_app/Models/AdminReport.dart';
+import 'package:tanny_app/Models/Machine.dart';
 
 class User {
   final String name;
@@ -93,39 +95,27 @@ class PdfApi {
             child: Expanded(child: Image(img, fit: BoxFit.fitWidth))));
   }
 
-  static Future<File> createPdf(List<File?> files) async {
+  static Future<File> createPdf(
+      List<File?> files, AdminReport adminReport) async {
     final pdf = Document();
 
-    //Adding table info
-
-    //Im getting a list of File? from the camera and gallery and
-
-    final headers = ["Users"];
-    final users = [
-      User(name: "Paul", age: 12),
-      User(name: "Roberto", age: 19),
-      User(name: "Mario", age: 32),
-      User(name: "Palacio", age: 33),
-    ];
-
-    final data = users.map((e) => [e.name, e.age]).toList();
     pdf.addPage(Page(
       build: ((context) => Container(
             child: Column(
               children: [
                 customRowTitle("INFORMACION DEL OPERADOR"),
-                customRow("NOMBRE :", "JUAN"),
-                customRow("APELLIDOS :", "GUARNIZO DELAVE"),
-                customRow("DNI :", "45231789"),
-                customRow("CARGO :", "OPERADOR"),
+                customRow("NOMBRE :", adminReport.operator.name),
+                customRow("APELLIDOS :", adminReport.operator.lastname),
+                customRow("DNI :", adminReport.operator.dni),
+                customRow("CARGO :", adminReport.operator.responsability),
                 customRowTitle("INFORMACION DE DAÑO MATERIAL Y/O OPEACIONAL"),
-                customRow("CODIGO DEL EQUIPO: :", "MIN-06"),
-                customRow("PLACA :", "VDK-983"),
-                customRow("EQUIPO :", "MINIBUS"),
-                customRow("MARCA :", "MITSUBISHI FUO"),
+                customRow("CODIGO DEL EQUIPO: :", adminReport.machine.code),
+                customRow("PLACA :", adminReport.machine.licensePlate),
+                customRow("EQUIPO :", adminReport.machine.description),
+                customRow("MARCA :", adminReport.machine.brand),
                 customRow("DESCRIPCION DEL DAÑO OCASIONADO :",
-                    "REVENTO LA LLANTA INFERIOR DEL MINIBUS"),
-                customRow("FECHA :", "21/01/2023"),
+                    adminReport.description),
+                customRow("FECHA :", adminReport.date),
                 customRowTitle("FOTOS TOMADAS"),
               ],
             ),

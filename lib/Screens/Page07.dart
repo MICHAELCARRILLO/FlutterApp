@@ -3,10 +3,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:tanny_app/Custom_Widgets/custom_widgets.dart';
 import 'dart:math';
 
-class Page07 extends StatefulWidget {
-  final List<Map<String, String>> jsonData;
+import 'package:tanny_app/Models/AdminReport.dart';
 
-  const Page07({super.key, required this.jsonData});
+class Page07 extends StatefulWidget {
+  final List<AdminReport> myAdminReportsAtDay;
+
+  const Page07({super.key, required this.myAdminReportsAtDay});
 
   @override
   State<Page07> createState() => _Page07State();
@@ -40,8 +42,8 @@ class _Page07State extends State<Page07> {
             height: 5.h,
           ),
           Expanded(
-              child:
-                  customList(widget.jsonData, context, widget.jsonData.length)),
+              child: customList(widget.myAdminReportsAtDay, context,
+                  widget.myAdminReportsAtDay.length)),
           SizedBox(
             height: 50.h,
           ),
