@@ -1,15 +1,19 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tanny_app/Screens/CreatingPdfScreen.dart';
 import 'package:tanny_app/Screens/Page01.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:tanny_app/Screens/Page03.dart';
+import 'Screens/provider.dart';
 import 'generated/l10n.dart';
 
 void main() {
   HttpOverrides.global = MyHttpOverrides();
-  runApp(const MyApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(MyApp());
 }
 
 class MyHttpOverrides extends HttpOverrides {
@@ -43,20 +47,27 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      builder: (context, child) => MaterialApp(
-        localizationsDelegates: const [
-          S.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
+    return MultiProvider(
+        providers: [
+          ChangeNotifierProvider<PDFStateProvider>(
+              create: (_) => PDFStateProvider()),
         ],
-        supportedLocales: S.delegate.supportedLocales,
-        title: "Tanny App",
-        home: Page03(),
-        theme: customTheme(),
-      ),
-      designSize: const Size(390, 845),
-    );
+        builder: (context, _) {
+          return ScreenUtilInit(
+            builder: (context, child) => MaterialApp(
+              localizationsDelegates: const [
+                S.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
+              supportedLocales: S.delegate.supportedLocales,
+              title: "Tanny App",
+              home: Page03(),
+              theme: customTheme(),
+            ),
+            designSize: const Size(390, 845),
+          );
+        });
   }
 }

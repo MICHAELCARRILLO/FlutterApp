@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
 import 'package:another_flushbar/flushbar.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pdf/pdf.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import 'package:tanny_app/Custom_Widgets/ImageWithDateOverlay%20.dart';
 import 'package:tanny_app/Custom_Widgets/custom_widgets.dart';
 
@@ -18,6 +20,7 @@ import 'package:tanny_app/Models/Admin.dart';
 import 'package:tanny_app/Models/AdminReport.dart';
 import 'package:tanny_app/Models/Machine.dart';
 import 'package:tanny_app/Models/Operator.dart';
+import 'package:tanny_app/Screens/provider.dart';
 import '../Custom_Widgets/pdf_api.dart';
 import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
@@ -26,6 +29,69 @@ import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import 'package:screenshot/screenshot.dart';
 import 'package:flutter/rendering.dart';
+import 'package:stamp_image/stamp_image.dart';
+
+import 'package:flutter_native_image/flutter_native_image.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+
+Future<Uint8List> getAsset(String assetPath) async {
+  ByteData data = await rootBundle.load(assetPath);
+  return data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+}
+
+Future<File> addTextToImage(File imageFile, String text) async {
+  img.Image? image = img.decodeImage(await imageFile.readAsBytes());
+  var myFont =
+      img.BitmapFont.fromZip(await getAsset("assets/fonts/Exo-Regular.zip"));
+
+  img.drawString(image!, text,
+      font: myFont, x: image.width - 1400, y: image.height - 300);
+  Uint8List modifiedImageBytes = img.encodeJpg(image);
+  DateTime now = DateTime.now();
+  int millisecondsSinceEpoch = now.millisecondsSinceEpoch;
+
+  File modifiedImageFile =
+      File('${imageFile.path}_$millisecondsSinceEpoch.jpg');
+  await modifiedImageFile.writeAsBytes(modifiedImageBytes);
+  return modifiedImageFile;
+}
+
+String getDate() {
+  var now = new DateTime.now();
+  var formatter = new DateFormat('dd.MMMM.yyyy hh:mm:ss', 'es_ES');
+  String formattedDate = formatter.format(now);
+  return formattedDate;
+}
+
+Future<File> compressFile(File file) async {
+  File compressedFile = await FlutterNativeImage.compressImage(
+    file.path,
+    quality: 40,
+  );
+  return compressedFile;
+}
+
+Future<void> imageToEditedImage(File image) async {
+  final editedFile = await addTextToImage(image, getDate());
+  final editedImageCompressed = await compressFile(editedFile);
+}
+
+Future<File> editAndCompressImage(File file) async {
+  final compresFile = await compressFile(file);
+  final editedImage = await addTextToImage(compresFile, getDate());
+  return editedImage;
+}
+
+Uint8List getmyString(List<dynamic> args) {
+  final Uint8List bytes = args[0];
+  final img.BitmapFont myFont = args[1];
+  final currentDate = args[2];
+  img.Image? image = img.decodeImage(bytes);
+  img.drawString(image!, currentDate,
+      font: myFont, x: image.width - 1400, y: image.height - 300);
+  Uint8List modifiedImageBytes = img.encodeJpg(image);
+  return modifiedImageBytes;
+}
 
 class Page05 extends StatefulWidget {
   const Page05({super.key});
@@ -43,18 +109,60 @@ class _Page05State extends State<Page05> {
   List<File?> editedImages = [];
   Widget newImagee = Container();
   Uint8List? myBytes;
-  final GlobalKey<State<StatefulWidget>> _widgetKey = GlobalKey();
+  //List<GlobalKey> keysList = [];
+  int currentImagesPicked = 0;
+  OverlayEntry? entry;
+
+  //screenShot
+  ScreenshotController screenshotController = ScreenshotController();
+
+  void showPdfLoadScreen() {
+    final overlay = Overlay.of(context)!;
+
+    entry = OverlayEntry(builder: (context) => buildPdfLoadScreen());
+    overlay.insert(entry!);
+  }
+
+  void hidePdfLoadScreen() {
+    entry?.remove();
+    entry = null;
+  }
+
+  Widget buildPdfLoadScreen() {
+    return Material(
+      child: SizedBox(
+          width: double.infinity,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text("Generando PDF...",
+                  style: TextStyle(
+                      fontSize: 23,
+                      fontWeight: FontWeight.w400,
+                      color: Color.fromARGB(255, 23, 67, 164),
+                      fontFamily: 'Atmospheric')),
+              SizedBox(height: 50),
+              InkWell(
+                  onTap: () => {Navigator.pop(context)},
+                  child: SpinKitFadingCube(
+                      color: Color.fromARGB(255, 25, 83, 209))),
+              SizedBox(height: 30),
+            ],
+          )),
+    );
+  }
+
+  void incrementsCurrentImagesPicked() {
+    setState(() {
+      currentImagesPicked++;
+    });
+  }
 
   Future<ui.Image> loadImage(File imageFile) async {
     // Read the file as bytes
     List<int> imageBytes = await imageFile.readAsBytes();
-
-    // Convert the bytes to Uint8List
     Uint8List bytes = Uint8List.fromList(imageBytes);
-
-    // Decode the image from the Uint8List
     ui.Image decodedImage = await decodeImageFromList(bytes);
-
     return decodedImage;
   }
 
@@ -67,30 +175,93 @@ class _Page05State extends State<Page05> {
     final now = DateTime.now();
     final formatter = DateFormat('yyyyMMdd_HHmmss_SSS');
     final milliseconds = now.millisecond.toString().padLeft(3, '0');
-    final filename = '${formatter.format(now)}_$milliseconds.png';
+    final filename = '${formatter.format(now)}_$milliseconds.jpg';
     final directory = await getTemporaryDirectory();
     final path = '${directory.path}/$filename';
     return path;
   }
 
-  Future pickImage(BuildContext context) async {
+  //metoh to generate current date yyyy-MM-dd
+
+  Widget currDate() {
+    return Text(
+      getDate(),
+      style: TextStyle(
+          color: Color.fromRGBO(255, 255, 255, 1),
+          fontSize: 17.sp,
+          fontWeight: FontWeight.w700),
+    );
+  }
+
+  void resultStamp(File file) {
+    setState(() {
+      editedImages.add(file);
+    });
+  }
+
+  Future<void> imagesToEditedImages() async {
+    if (images.isEmpty) return;
+
+    List<File?> newImages = [];
+
+    for (var element in images) {
+      final editedFile = await addTextToImage(element!, getDate());
+      final editedImageCompressed = await compressFile(editedFile);
+      newImages.add(editedImageCompressed);
+    }
+
+    if (newImages.isNotEmpty) {
+      setState(() {
+        editedImages = newImages;
+      });
+    }
+  }
+
+  void ckeckValidPdfAndImages() async {
+    showPdfLoadScreen();
+
+    while (currentImagesPicked != editedImages.length) {
+      await Future.delayed(const Duration(seconds: 1));
+    }
+
+    await onPdfButtonPressed().then((value) => {
+          hidePdfLoadScreen(),
+          showPrintedMessage('Éxito', 'Documento Guardado'),
+          PdfApi.openFile(value),
+          saveAdminReport(mainAdminReport)
+        });
+  }
+
+  Future<File> onPdfButtonPressed() async {
+    final pdfFile = await PdfApi.createPdf(
+      editedImages,
+      generateAdminReport(
+        mainMachine,
+        description.text,
+        _turn!,
+        _operator!,
+      ),
+    );
+
+    return pdfFile;
+  }
+
+  Future pickImage() async {
     try {
       final image = await ImagePicker().pickImage(source: ImageSource.camera);
-
       if (image == null) return;
       final imageTemporary = File(image.path);
+      var myFont = img.BitmapFont.fromZip(
+          await getAsset("assets/fonts/Exo-Regular.zip"));
+      final editedImage = await compute<List<dynamic>, Uint8List>(
+          getmyString, [imageTemporary.readAsBytesSync(), myFont, getDate()]);
 
-      // Create a date string with the current date
-
-      final overlayWidget =
-          ImageWithDateOverlay(imageFile: imageTemporary, date: "2023-02-02");
-
-      setState(() {
-        newImagee = overlayWidget;
-      });
+      final newEditedImage =
+          await writeBytesToFile(editedImage, await generateImageFilename());
 
       setState(() {
         images.add(imageTemporary);
+        editedImages.add(newEditedImage);
       });
     } on PlatformException catch (e) {
       print('Failed to pick image: $e');
@@ -196,7 +367,6 @@ class _Page05State extends State<Page05> {
               ),
             ],
           ),
-
           SizedBox(height: 25.h),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -283,41 +453,6 @@ class _Page05State extends State<Page05> {
             ),
           ),
           SizedBox(width: 25.h),
-          images.length == 0
-              ? Container()
-              : Container(
-                  height: 320.h,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: images.length,
-                    padding: EdgeInsets.symmetric(horizontal: 10.0),
-                    itemBuilder: (context, index) {
-                      return Container(
-                        padding: EdgeInsets.only(right: 10.0),
-                        child: Image.file(images[index]!),
-                      );
-                    },
-                  ),
-                ),
-          SizedBox(
-            height: 25.h,
-          ),
-          editedImages.length == 0
-              ? Container()
-              : Container(
-                  height: 520.h,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: editedImages.length,
-                    padding: EdgeInsets.symmetric(horizontal: 10.0),
-                    itemBuilder: (context, index) {
-                      return Container(
-                        padding: EdgeInsets.only(right: 10.0),
-                        child: Image.file(editedImages[index]!),
-                      );
-                    },
-                  ),
-                ),
           SizedBox(
             height: 25.h,
           ),
@@ -326,7 +461,8 @@ class _Page05State extends State<Page05> {
               PermissionStatus cameraStatus = await Permission.camera.request();
 
               if (cameraStatus == PermissionStatus.granted) {
-                pickImage(context);
+                pickImage();
+                incrementsCurrentImagesPicked();
               }
               if (cameraStatus == PermissionStatus.denied) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -357,43 +493,9 @@ class _Page05State extends State<Page05> {
               ],
             ),
           ),
-          // if (myBytes != null) ...[Image.memory(myBytes!)],
-          images.isNotEmpty
-              ? RepaintBoundary(
-                  key: _widgetKey,
-                  child: ImageWithDateOverlay(
-                      imageFile: images[0]!, date: DateTime.now().toString()),
-                )
-              : Container(),
-
           SizedBox(height: 30.h),
-          button("Guardar Pdf", 25.w, screenWidth, () async {
-            //thing we have to save the image first then transfor it to file
-
-            final boundury = await _widgetKey.currentContext!.findRenderObject()
-                as RenderRepaintBoundary;
-            final image = await boundury.toImage();
-            final byteData =
-                await image.toByteData(format: ImageByteFormat.png);
-            final bytes = byteData!.buffer.asUint8List();
-
-            File newFile =
-                await writeBytesToFile(bytes, await generateImageFilename());
-
-            setState(() {
-              editedImages.add(newFile);
-            });
-
-            print("BYTESSS $bytes");
-
-            final pdfFile = await PdfApi.createPdf(
-                editedImages,
-                generateAdminReport(
-                    mainMachine, description.text, _turn!, _operator!));
-            showPrintedMessage("Éxito", "Documento Guardado");
-            PdfApi.openFile(pdfFile);
-            saveAdminReport(mainAdminReport);
-          }),
+          button(
+              "Guardar Pdf", 25.w, screenWidth, () => ckeckValidPdfAndImages()),
           SizedBox(height: 35.h),
         ],
       ),
